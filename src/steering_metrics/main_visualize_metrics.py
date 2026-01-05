@@ -46,6 +46,7 @@ def create_metrics_evolution_plot(metrics: pd.DataFrame):
 
     ax3.plot(metrics["timestamp"], np.maximum(np.minimum(metrics["avg_steering_efficiency"], np.ones(len(metrics))), np.zeros(len(metrics))), marker=".", label="avg_steering_efficiency")
     ax3.plot(metrics["timestamp"], np.maximum(np.minimum(metrics["avg_steering_efficiency_weighted"], np.ones(len(metrics))), np.zeros(len(metrics))), marker=".", label="avg_steering_efficiency_weighted")
+    ax3.plot(metrics["timestamp"], np.maximum(np.minimum(metrics["cheapest_block_selection_relative_auc"], np.ones(len(metrics))), np.zeros(len(metrics))), marker=".", label="cheapest_block_selection_relative_auc")
     ax3.set_xlabel("Date")
     ax3.set_ylabel("%")
     ax3.legend()
@@ -64,6 +65,7 @@ def create_metrics_evolution_plot(metrics: pd.DataFrame):
 
 def main():
     device_id = DEVICE_ID
+    device_id = "aa3a21f9-1dcf-53a8-8754-3085f99990a8"
     df = pd.read_csv(f"results/metric_{device_id}.csv", parse_dates=["timestamp"])
     create_metrics_evolution_plot(df)
 

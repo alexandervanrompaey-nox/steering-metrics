@@ -11,26 +11,25 @@ from steering_metrics.day_prices.interfaces import IPriceProvider
 from steering_metrics.measurement_repo.interfaces import IMeasurementRepo
 
 @dataclass
-class PercentileCheapestBlocks:
+class CheapestBlockSelection:
     blocks: List[Tuple[float, float]]
     required_blocks: int
     total_blocks: int
 
     def plot(self) -> None:
         plt.step([p[0] for p in self.blocks], [p[1] for p in self.blocks], where='post')
-        plt.step([l / self.total_blocks for l in range(self.total_blocks)], [min(l / self.required_blocks, 1) for l in range(self.total_blocks)],
-                 where="post", linestyle="dashed", color="black")
+        if self.required_blocks > 0:
+            plt.step([l / self.total_blocks for l in range(self.total_blocks)], [min(l / self.required_blocks, 1) for l in range(self.total_blocks)],
+                     where="post", linestyle="dashed", color="black")
         plt.show()
 
-    def calculate_auc(self) -> float:
-        a = auc([b[0] for b in self.blocks], [b[1] for b in self.blocks])
-        area = 0
-        for b in self.blocks:
-            area += b[0]*1/len(self.blocks)
-        print("auc:", a)
-        print("area:", area)
-        print("other:", np.trapezoid([b[0] for b in self.blocks], [b[1] for b in self.blocks]))
-
+    def calculate_relative_auc(self) -> float:
+        actual = auc([b[0] for b in self.blocks], [b[1] for b in self.blocks])
+        if self.required_blocks > 0:
+            best_possible = auc([l / self.total_blocks for l in range(self.total_blocks)], [min(l / self.required_blocks, 1) for l in range(self.total_blocks)])
+        else:
+            best_possible = actual
+        return actual / best_possible
 
 
 @dataclass
@@ -60,7 +59,8 @@ class DeviceMetric:
     pct_better_than_avg_day_price_weighted: float
     pct_better_than_avg_best_price_weighted: float
     pct_better_than_avg_worst_price_weighted: float
-    percentile_blocks: PercentileCheapestBlocks
+    cheapest_block_selection: CheapestBlockSelection
+    cheapest_block_selection_relative_auc: float
 
     data_accuracy: float # how many of the field have valid data
 
@@ -73,22 +73,12 @@ class DailyMetricCalculator:
         self._price_provider = price_provider
         self._data_repo = data_repo
 
-    def _create_plot(self,df: pd.DataFrame) -> None:
-        #some calculations
-        consumption_slots = df[df["is_consumption_slot"] == True]
-        n_consumption_slots = len(consumption_slots)
-        cheapest_price_slots = prices["price_EUR_kWh"].sort_values().iloc[0:n_consumption_slots]
-        actual_price_slots = prices.loc[consumption_slots.index]["price_EUR_kWh"]
-        avg_cheapest_price = cheapest_price_slots.mean()
-        avg_actual_price = actual_price_slots.mean()
-        max_price_of_cheapest_slots = cheapest_price_slots.max()
-        prices["cheapest_slots"] = prices["price_EUR_kWh"] <= max_price_of_cheapest_slots
-        prices["actual_selected_slots"] = prices.index.isin(consumption_slots.index)
+    def _create_plot(self, df: pd.DataFrame) -> None:
 
         fig, (ax1, ax2) = plt.subplots(
             2, 1, figsize=(15, 8), sharex=True, gridspec_kw={"height_ratios": [1, 1]}
         )
-        fig.suptitle(f"Consumption analysis, amount of consumption slots: {n_consumption_slots}")
+        fig.suptitle(f"Consumption analysis, amount of consumption slots: {df["is_consumption_block"].sum()}")
         # --- Subplot 1: Temperature & Heating ---
         ax1.set_ylabel("Average Power (kW)")
         ax1.step(
@@ -120,13 +110,13 @@ class DailyMetricCalculator:
         ax1.legend()
 
         ax2.set_ylabel("Price (EUR/kWh)")
-        ax2.step(prices.index, prices["price_EUR_kWh"], where="post", label="Price")
-        ax2.fill_between(prices.index, prices["cheapest_slots"] * prices["price_EUR_kWh"], step="post", alpha=0.2, color="tab:green", label=f"Cheapest {n_consumption_slots} periods")
-        ax2.fill_between(prices.index, prices["actual_selected_slots"] * prices["price_EUR_kWh"], step="post", alpha=0.2, color="tab:orange", label=f"Actual {n_consumption_slots} periods")
+        ax2.step(df.index, df["price_EUR_kWh"], where="post", label="Price")
+        ax2.fill_between(df.index, df["is_cheap_block"] * df["price_EUR_kWh"], step="post", alpha=0.2, color="tab:green", label=f"Cheapest {df["is_consumption_block"].sum()} periods")
+        ax2.fill_between(df.index, df["is_consumption_block"] * df["price_EUR_kWh"], step="post", alpha=0.2, color="tab:orange", label=f"Actual {df["is_consumption_block"].sum()} periods")
 
         # ax2.fill_between(prices.index, prices["price_EUR_kWh"], where=prices["cheapest_slots"], step="post", alpha=0.2, color="tab:green", label=f"Cheapest {n_consumption_slots} periods")
         # ax2.fill_between(prices.index, prices["price_EUR_kWh"], where=prices["actual_selected_slots"], step="post", alpha=0.2, color="tab:orange", label=f"Actual {n_consumption_slots} periods")
-        ax2.hlines(max_price_of_cheapest_slots, xmin=prices.index[0], xmax=prices.index[-1], linestyles="dashed", label="Cheapest ")
+        ax2.hlines(df["price_EUR_kWh"].sort_values().iloc[0:df["is_consumption_block"].sum()].max(), xmin=df.index[0], xmax=df.index[-1], linestyles="dashed", label="Cheapest ")
         ax2.tick_params(axis="y")
         ax2.grid(True, linestyle=":", alpha=0.6)
         ax2.set_ylim(0, 0.125)
@@ -137,14 +127,14 @@ class DailyMetricCalculator:
         return (base - value) / base
 
     @staticmethod
-    def _calculate_percentile(df_: pd.DataFrame) -> PercentileCheapestBlocks:
+    def _calculate_percentile(df_: pd.DataFrame) -> CheapestBlockSelection:
         percentiles = [(0., 0.)]
         sorted_df = df_.sort_values(by="price_EUR_kWh", ascending=True)
         length = len(df_)
         needed_blocks = sorted_df[sorted_df["is_consumption_block"] == True].shape[0]
         for i in range(len(df_)):
             percentiles.append(((i +1 ) / length, (sorted_df.iloc[0:i+1]["is_consumption_block"].sum() / needed_blocks)))
-        return PercentileCheapestBlocks(percentiles, required_blocks=needed_blocks, total_blocks=length)
+        return CheapestBlockSelection(percentiles, required_blocks=needed_blocks, total_blocks=length)
 
     def calculate(self, device_id: str, date: Arrow, plot: bool = False) -> DeviceMetric:
         since = date
@@ -156,22 +146,21 @@ class DailyMetricCalculator:
         data_accuracy = len(df[df["avg_power"].notna()]) / len(df)
 
         # Clean and calculate some field
-        df.fillna(method="ffill", inplace=True)
+        df.ffill(inplace=True)
         df["total_power"] = df["avg_power"] + df["avg_aux_power"]
         _manual = df['sh_mode'] == 'MANUAL'
         _power_greater_than_threshold = df["total_power"] > 0.2
         _dhw = df['most_frequent_status'] == 'DHW'
         _sh = df['most_frequent_status'] == 'HEATING'
-        df["total_power_manual"] = df["total_power"] * _manual * _power_greater_than_threshold
-        df["total_power_manual_sh"] = df["total_power"] * _manual * _power_greater_than_threshold * _sh
-        df["total_power_manual_dhw"] = df["total_power"] * _manual * _power_greater_than_threshold * _dhw
-        df["is_consumption_block"] = _manual * _power_greater_than_threshold
-
-        # self._create_plot(data, prices)
-        #TODO check calculation
-        # how many of the most expnsive periods are chosen
-        # make histogram of prices, set cut line, make historgram of actual prices
-        # work with TP and FN, FP
+        # TODO sometimes power when not in manual mode ... fucks it up again
+        # df["total_power_manual"] = df["total_power"] * _manual * _power_greater_than_threshold
+        # df["total_power_manual_sh"] = df["total_power"] * _manual * _power_greater_than_threshold * _sh
+        # df["total_power_manual_dhw"] = df["total_power"] * _manual * _power_greater_than_threshold * _dhw
+        # df["is_consumption_block"] = _manual * _power_greater_than_threshold
+        df["total_power_manual"] = df["total_power"] * _power_greater_than_threshold
+        df["total_power_manual_sh"] = df["total_power"] * _power_greater_than_threshold * _sh
+        df["total_power_manual_dhw"] = df["total_power"] * _power_greater_than_threshold * _dhw
+        df["is_consumption_block"] = _power_greater_than_threshold
 
         general_stats = df.describe()
         n_consumption_slots = len(df[df["is_consumption_block"]])
@@ -213,9 +202,8 @@ class DailyMetricCalculator:
                 df["price_EUR_kWh"].max() - df["price_EUR_kWh"].min()
             )
 
-        percentiles = self._calculate_percentile(df)
-        # percentiles.plot()
-        # percentiles.calculate_auc()
+        cheapest_block_selection = self._calculate_percentile(df)
+        # cheapest_block_selection.plot()
 
         if plot:
             self._create_plot(df)
@@ -244,6 +232,7 @@ class DailyMetricCalculator:
             pct_better_than_avg_day_price_weighted=self._calculate_pct_better(general_stats.loc["mean"]["price_EUR_kWh"], avg_price_selected_blocks_energy_weighted),
             pct_better_than_avg_best_price_weighted=self._calculate_pct_better(avg_price_cheapest_blocks, avg_price_selected_blocks_energy_weighted),
             pct_better_than_avg_worst_price_weighted=self._calculate_pct_better(avg_price_most_expensive_blocks, avg_price_selected_blocks_energy_weighted),
-            percentile_blocks=self._calculate_percentile(df),
+            cheapest_block_selection=cheapest_block_selection,
+            cheapest_block_selection_relative_auc=cheapest_block_selection.calculate_relative_auc(),
             data_accuracy=data_accuracy,
         )

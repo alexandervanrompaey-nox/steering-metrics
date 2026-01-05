@@ -28,5 +28,5 @@ def calculate_metric_and_plot_for_device(device_id: str, date: Arrow):
 
 if __name__ == "__main__":
     setup_logging()
-    # calculate_metrics_for_all_devices()
-    calculate_metric_and_plot_for_device(DEVICE_ID, Arrow(2025, 12, 20, 23, tzinfo="utc"))
+    calculate_metrics_for_all_devices()
+    # calculate_metric_and_plot_for_device(DEVICE_ID, Arrow(2025, 12, 14, 23, tzinfo="utc"))
