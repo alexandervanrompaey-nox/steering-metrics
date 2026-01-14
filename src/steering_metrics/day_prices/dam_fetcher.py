@@ -82,6 +82,13 @@ class DAMDataFetcher:
                 if not vals:
                     continue
                 vals.sort(key=lambda x: x[0])
+                if len(vals) != 96:
+                    backup_value = vals[0][1]
+                    for index in range(96):
+                        if vals[index][0] != index + 1:
+                            vals.append((index + 1, backup_value))
+                            vals.sort(key=lambda x: x[0])
+                        backup_value = vals[index][1]
                 idx = pd.date_range(
                     start=start, periods=len(vals), freq="15min", tz="UTC"
                 )

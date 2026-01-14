@@ -5,6 +5,7 @@ import sys
 
 DAM_FETCHER_LOGGER = "DAM_FETCHER"
 STEERING_METRICS_LOGGER = "STEERING_METRICS"
+DATA_FETCHER_LOGGER = "DATA_FETCHER"
 
 LOG_FORMAT = "%(asctime)s - %(name)s  - %(levelname)s - %(message)s"
 
@@ -26,3 +27,6 @@ def get_dam_fetcher_logger():
 
 def get_steering_metrics_logger():
     return logging.getLogger(STEERING_METRICS_LOGGER)
+
+def data_fetcher_logger():
+    return logging.getLogger(DATA_FETCHER_LOGGER)

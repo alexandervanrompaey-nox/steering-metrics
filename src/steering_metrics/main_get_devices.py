@@ -35,7 +35,5 @@ def main():
         print(f'"{row["device_id"]}",')
 
 
-    print("done")
-
 if __name__=="__main__":
     main()

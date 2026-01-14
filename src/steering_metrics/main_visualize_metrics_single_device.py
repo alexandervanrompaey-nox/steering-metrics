@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import date2num
 import numpy as np
 from steering_metrics.config import DEVICE_ID
+from steering_metrics.metrics.options import CalculatorOptions
 
 
-def create_metrics_evolution_plot(metrics: pd.DataFrame):
+def create_metrics_evolution_plot(metrics: pd.DataFrame, options: CalculatorOptions):
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(
         4, 1, figsize=(30, 20), sharex=True, gridspec_kw={"height_ratios": [1, 1, 1, 1]}
     )
-    ax1.set_title("Average prices")
+    ax1.set_title(f"Average prices with active block options: {options.options_string()}")
     ax1.plot(
         metrics["timestamp"], metrics["avg_price_day"], label="avg_price_day", color="blue", marker=".", alpha=0.5,
     )
@@ -65,10 +66,9 @@ def create_metrics_evolution_plot(metrics: pd.DataFrame):
 
 def main():
     device_id = DEVICE_ID
-    device_id = "aa3a21f9-1dcf-53a8-8754-3085f99990a8"
-    df = pd.read_csv(f"results/metric_{device_id}.csv", parse_dates=["timestamp"])
-    create_metrics_evolution_plot(df)
-
+    options = CalculatorOptions()
+    df = pd.read_csv(f"results/metric_{device_id}_{options.options_string()}.csv", parse_dates=["timestamp"])
+    create_metrics_evolution_plot(df, options)
 
 
 if __name__=="__main__":
