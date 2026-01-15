@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num
 import numpy as np
-from steering_metrics.config import DEVICE_ID
+from steering_metrics.config import DEVICE_ID, MPC_DEVICE, CALCULATOR_OPTIONS
 from steering_metrics.metrics.options import CalculatorOptions
 
 
@@ -65,11 +65,12 @@ def create_metrics_evolution_plot(metrics: pd.DataFrame, options: CalculatorOpti
 
 
 def main():
-    device_id = DEVICE_ID
-    options = CalculatorOptions()
-    df = pd.read_csv(f"results/metric_{device_id}_{options.options_string()}.csv", parse_dates=["timestamp"])
-    create_metrics_evolution_plot(df, options)
+    # device_id = "a3ed01ad-2ec9-4d04-82b0-dc9badd35fa4" # device with almost activation all the tim
+    device_id = "6bb416ea-f469-46c5-8b8e-5df6b3a3fed3" # better device no activating all the time
+    # device_id = MPC_DEVICE
+    df = pd.read_csv(f"results/metric_{device_id}_{CALCULATOR_OPTIONS.options_string()}.csv", parse_dates=["timestamp"])
+    create_metrics_evolution_plot(df, CALCULATOR_OPTIONS)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

@@ -99,11 +99,11 @@ class DailyMetricCalculator:
         if self._options.consumption_rule in [ConsumptionRule.SH_MANUAL_ONLY, ConsumptionRule.SH_DHW_MANUAL_ONLY]:
             _manual = df['sh_mode'] == "MANUAL"
             df["consumption_power"] = df["consumption_power"] * _manual
-        _power_greater_than_threshold = df["consumption_power"] >= self._options.power_threshold
 
         if self._options.consumption_rule in [ConsumptionRule.SH, ConsumptionRule.SH_MANUAL_ONLY]:
-            _sh = df['most_frequent_status'] == 'HEATING'
+            _sh = df['most_frequent_status'] == 'HEATING'.lower()
             df["consumption_power"] = df["consumption_power"] * _sh
+        _power_greater_than_threshold = df["consumption_power"] >= self._options.power_threshold
         df["is_consumption_block"] = _power_greater_than_threshold
 
         # _manual = df['sh_mode'] == 'MANUAL' #TODO not using manual mode shizzle, ...

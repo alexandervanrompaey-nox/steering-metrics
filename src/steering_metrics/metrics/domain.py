@@ -20,12 +20,17 @@ class CheapestBlockSelection:
         plt.show()
 
     def calculate_relative_auc(self) -> float:
+        #TODO this needs to be validated
         actual = auc([b[0] for b in self.blocks], [b[1] for b in self.blocks])
         if self.required_blocks > 0:
             best_possible = auc([l / self.total_blocks for l in range(self.total_blocks)], [min(l / self.required_blocks, 1) for l in range(self.total_blocks)])
         else:
             best_possible = actual
-        return actual / best_possible
+        if self.required_blocks > 0:
+            worst_possible = self.required_blocks / self.total_blocks * 0.5 * 0.5
+        else:
+            worst_possible = actual
+        return (actual - worst_possible) / best_possible
 
 
 @dataclass

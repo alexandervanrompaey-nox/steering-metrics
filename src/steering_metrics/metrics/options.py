@@ -30,9 +30,6 @@ class CalculatorOptions:
         return f"df-{self.missing_data_fill_type.value}_aux-{self.auxiliary_power_included}_consumption-{self.consumption_rule.value}_threshold-{threshold}"
 
 
-
-
-
 @dataclass
 class PlotOptions:
     metric_name: str
