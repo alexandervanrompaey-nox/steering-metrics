@@ -19,9 +19,10 @@ def create_plot(devices: List[str], options: PlotOptions, calculator_options: Ca
     df_temp = pd.DataFrame()
     for d in devices:
         _df = pd.read_csv(f"results/metric_{d}_{calculator_options.options_string()}.csv", parse_dates=["timestamp"], index_col="timestamp")
-        # df[d] = np.round(_df[options.metric_name],2)
+        # TODO check this before plotting
+        df[d] = np.round(_df[options.metric_name],2)
         # df[d] = np.maximum(np.minimum(_df[options.metric_name], np.ones(len(_df[options.metric_name]))), np.zeros(len(_df[options.metric_name])))
-        df[d] = np.maximum(np.minimum(_df[options.metric_name], 0.3* np.ones(len(_df[options.metric_name]))), -0.3 * np.ones(len(_df[options.metric_name])))
+        # df[d] = np.maximum(np.minimum(_df[options.metric_name], 0.3* np.ones(len(_df[options.metric_name]))), -0.3 * np.ones(len(_df[options.metric_name])))
 
         df_acc[d] = _df["data_accuracy"]
         df_temp[d] = _df["avg_outdoor_temperature"]
@@ -65,12 +66,13 @@ def create_plot(devices: List[str], options: PlotOptions, calculator_options: Ca
 
 
 if __name__ == "__main__":
+    # TODO check the todo regarding plotting
     setup_logging()
     start_date = DEFAULT_DATE
     end_date = start_date.shift(days=41)
     # plot_options = PlotOptions("active_power_blocks_pct", start_date=start_date, end_date=end_date)
     # plot_options = PlotOptions("avg_steering_efficiency_weighted", start_date=start_date, end_date=end_date)
-    plot_options = PlotOptions("pct_better_than_avg_day_price_weighted", start_date=start_date, end_date=end_date)
+    # plot_options = PlotOptions("pct_better_than_avg_day_price_weighted", start_date=start_date, end_date=end_date)
     # plot_options = PlotOptions("n_active_power_blocks", start_date=start_date, end_date=end_date)
-    # plot_options = PlotOptions("data_accuracy", start_date=start_date, end_date=end_date)
+    plot_options = PlotOptions("data_accuracy", start_date=start_date, end_date=end_date)
     create_plot(WANTED_DEVICE_IDS, plot_options, CALCULATOR_OPTIONS)

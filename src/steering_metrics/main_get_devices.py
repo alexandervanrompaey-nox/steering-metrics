@@ -1,5 +1,13 @@
-from steering_metrics.config import EXCLUDED_ENERGY_SUPPLIER, DEFAULT_DATE, N_DAYS, WANTED_BRAND
 from steering_metrics.factories import get_big_query_client
+from arrow import Arrow
+
+DEFAULT_DATE = Arrow(2025, 11,30, 23, tz="utc")
+N_DAYS = 46
+
+EXCLUDED_ENERGY_SUPPLIER = "Frank Energie"
+
+
+MPC_DEVICE = "df9a5c3c-b733-4b30-a6de-f614cb662a08"
 
 
 def get_query():
@@ -22,7 +30,6 @@ def get_query():
             AND ingestion_time >= DATETIME('{since}')
             AND ingestion_time <= DATETIME('{until}')
             AND energy_supplier != '{EXCLUDED_ENERGY_SUPPLIER}'
-            AND brand = '{WANTED_BRAND}'
         ORDER BY brand, device_id
     """
 

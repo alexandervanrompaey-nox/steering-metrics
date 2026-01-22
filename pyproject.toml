@@ -80,6 +80,7 @@ dependencies = [
     "urllib3==2.5.0",
     "yarl==1.22.0",
     "arrow>=1.4.0",
+    "notebook>=7.5.2",
 ]
 
 [tool.ruff]

@@ -2,11 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num
 import numpy as np
-from steering_metrics.config import DEVICE_ID, MPC_DEVICE, CALCULATOR_OPTIONS
+from steering_metrics.config import DEVICE_ID, MPC_DEVICE, CALCULATOR_OPTIONS, WANTED_DEVICE_IDS
 from steering_metrics.metrics.options import CalculatorOptions
 
 
-def create_metrics_evolution_plot(metrics: pd.DataFrame, options: CalculatorOptions):
+def create_metrics_evolution_plot(metrics: pd.DataFrame, options: CalculatorOptions, device_id: str, show_fig: bool = True, save_fig: bool = False):
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(
         4, 1, figsize=(30, 20), sharex=True, gridspec_kw={"height_ratios": [1, 1, 1, 1]}
     )
@@ -61,15 +61,22 @@ def create_metrics_evolution_plot(metrics: pd.DataFrame, options: CalculatorOpti
     ax4.legend()
 
     fig.tight_layout()
-    plt.show()
+    if show_fig:
+        plt.show()
+    if save_fig:
+        plt.savefig(f"metrics_{device_id}.png")
 
 
 def main():
     # device_id = "a3ed01ad-2ec9-4d04-82b0-dc9badd35fa4" # device with almost activation all the tim
-    device_id = "6bb416ea-f469-46c5-8b8e-5df6b3a3fed3" # better device no activating all the time
+    # device_id = "6bb416ea-f469-46c5-8b8e-5df6b3a3fed3" # better device no activating all the time
     # device_id = MPC_DEVICE
-    df = pd.read_csv(f"results/metric_{device_id}_{CALCULATOR_OPTIONS.options_string()}.csv", parse_dates=["timestamp"])
-    create_metrics_evolution_plot(df, CALCULATOR_OPTIONS)
+    # df = pd.read_csv(f"results/metric_{device_id}_{CALCULATOR_OPTIONS.options_string()}.csv", parse_dates=["timestamp"])
+    # create_metrics_evolution_plot(df, CALCULATOR_OPTIONS)
+
+    for device in WANTED_DEVICE_IDS:
+        df = pd.read_csv(f"results/metric_{device}_{CALCULATOR_OPTIONS.options_string()}.csv", parse_dates=["timestamp"])
+        create_metrics_evolution_plot(df, CALCULATOR_OPTIONS, device, show_fig=False, save_fig=True)
 
 
 if __name__ == "__main__":

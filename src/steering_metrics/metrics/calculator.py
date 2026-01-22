@@ -84,6 +84,9 @@ class DailyMetricCalculator:
         prices = self._price_provider.get_prices(since=since, until=until)
 
         df = pd.merge(prices, data, left_index=True, right_index=True, how="outer")
+        if len(df) == 0:
+            print(device_id)
+            print(date)
         data_accuracy = len(df[df["avg_power"].notna()]) / len(df)
 
         if self._options.missing_data_fill_type == MissingDataFillType.ZERO:
